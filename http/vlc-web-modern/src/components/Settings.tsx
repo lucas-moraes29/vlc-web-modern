@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { fetchStatus, sendCommand } from '../api'
 
 export function Settings() {
   const [skipAmount, setSkipAmount] = useState('15')
@@ -7,6 +9,19 @@ export function Settings() {
   const [tvSource, setTvSource] = useState<'itunes' | 'tvmaze' | 'thetvdb' | 'tmdb'>('itunes')
   const [tmdbToken, setTmdbToken] = useState('')
   const [tvdbKey, setTvdbKey] = useState('')
+  const queryClient = useQueryClient()
+
+  // Read VLC's own fullscreen state from the status it already exposes, instead of
+  // tracking the browser page's fullscreen state (which is a different thing entirely).
+  const { data: status } = useQuery({ queryKey: ['status'], queryFn: fetchStatus })
+  const isFullscreen = !!status?.fullscreen
+
+  const fullscreenMutation = useMutation({
+    mutationFn: () => sendCommand('fullscreen'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['status'] })
+    },
+  })
 
   useEffect(() => {
     setSkipAmount(localStorage.getItem('vlc-skip-amount') || '15')
@@ -52,6 +67,22 @@ export function Settings() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
         <p className="text-muted-foreground mt-2">Configure your VLC Web parameters.</p>
+      </div>
+
+      <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+        <div className="space-y-0.5">
+          <label className="text-sm font-medium leading-none">Reprodução em Tela Cheia</label>
+          <p className="text-sm text-muted-foreground">Coloca o próprio VLC (no computador) em tela cheia. Clique de novo pra sair.</p>
+        </div>
+        <button 
+          onClick={() => fullscreenMutation.mutate()}
+          disabled={fullscreenMutation.isPending}
+          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 ${isFullscreen ? 'bg-primary' : 'bg-input'}`}
+          role="switch"
+          aria-checked={isFullscreen}
+        >
+          <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow ring-0 transition duration-200 ease-in-out ${isFullscreen ? 'translate-x-5' : 'translate-x-0'}`} />
+        </button>
       </div>
 
       <div className="flex flex-col gap-4">
