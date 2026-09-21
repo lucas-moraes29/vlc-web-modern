@@ -22,7 +22,7 @@ export function useMetadata(searchTerm: string, rawFilename?: string) {
         .replace(/\.[^/.]+$/, "") // Remove generic file extension
         .replace(/\([^)]*\)/g, "") // Remove anything in parentheses like (1997)
         .replace(/\[[^\]]*\]/g, "") // Remove anything in brackets
-        .replace(/1080p|720p|4k|x264|x265|Bluray|HDTV|SDTV|AAC|WEBRip|HDRip|H\.264|H\.265/gi, "") // Remove scene markers
+        .replace(/1080p|720p|4k|x264|x265|Bluray|TELESYNC|HDTV|SDTV|AAC|WEBRip|HDRip|H\.264|H\.265/gi, "") // Remove scene markers
         .replace(/[-_.]/g, " ") // Convert spacers to spaces
         .replace(/\s+/g, " ") // Compress spaces
         .trim()

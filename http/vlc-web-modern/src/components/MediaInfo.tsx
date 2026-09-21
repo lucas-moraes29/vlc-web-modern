@@ -75,7 +75,7 @@ export function MediaInfo({
   }
 
   return (
-    <div className="absolute right-0 top-0 h-full w-80 bg-card/90 backdrop-blur-xl border-l z-50 p-6 flex flex-col pt-16 shadow-2xl animate-in fade-in slide-in-from-right-8 fade-out slide-out-to-right-8 duration-300">
+    <div className="absolute right-0 top-0 h-full w-full sm:w-80 bg-card/90 backdrop-blur-xl border-l z-50 p-6 flex flex-col pt-16 shadow-2xl animate-in fade-in slide-in-from-right-8 fade-out slide-out-to-right-8 duration-300">
       <button 
         onClick={onClose}
         className="absolute top-4 right-4 bg-muted hover:bg-muted/80 text-foreground p-2 rounded-full transition-colors"

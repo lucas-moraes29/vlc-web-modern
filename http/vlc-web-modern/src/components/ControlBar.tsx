@@ -26,7 +26,8 @@ export function ControlBar({
   onToggleFullscreen,
   localVlmPercent,
   setLocalVlmPercent,
-  displayArtwork
+  displayArtwork,
+  externalMeta
 }: { 
   isVideoMode?: boolean, 
   onToggleVideo?: () => void,
@@ -34,7 +35,8 @@ export function ControlBar({
   onToggleFullscreen?: () => void,
   localVlmPercent: number,
   setLocalVlmPercent: React.Dispatch<React.SetStateAction<number>>,
-  displayArtwork?: string | null
+  displayArtwork?: string | null,
+  externalMeta?: any
 }) {
   const queryClient = useQueryClient()
   
@@ -88,6 +90,16 @@ export function ControlBar({
       queryClient.invalidateQueries({ queryKey: ['status'] })
     },
   })
+
+  // Seek mutation separate because it takes a param (mirrors volumeMutation above).
+  // Passing command + val separately avoids sendCommand double-encoding "seek&val=X"
+  // into a single opaque `command` value, which is what broke the progress slider.
+  const seekMutation = useMutation({
+    mutationFn: (val: number) => sendCommand('seek', val),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['status'] })
+    },
+  })
   
 
   if (!status) return <div className="h-24 shrink-0 border-t bg-card" /> // Skeleton
@@ -103,8 +115,8 @@ export function ControlBar({
   }
 
   const meta = status.information?.category?.meta || {}
-  const title = meta.title || meta.filename || "No Media Playing"
-  const artist = meta.artist || ""
+  const title = externalMeta?.title || meta.title || meta.filename || "No Media Playing"
+  const artist = externalMeta?.artist || meta.artist || ""
 
   const skipAmount = parseInt(localStorage.getItem('vlc-skip-amount') || '15', 10)
 
@@ -120,19 +132,19 @@ export function ControlBar({
     } else {
       if (status.length > 0) {
         const newSec = Math.max(0, Math.min(status.length, status.time + seconds))
-        mutation.mutate(`seek&val=${newSec}`)
+        seekMutation.mutate(newSec)
       }
     }
   }
 
   return (
-    <div className="flex h-24 shrink-0 items-center justify-between border-t bg-card px-6">
+    <div className="flex flex-col gap-2 border-t bg-card px-3 py-2 sm:h-24 sm:flex-row sm:items-center sm:justify-between sm:gap-0 sm:px-6 sm:py-0">
       {/* Current Media Info */}
-      <div className="flex w-1/3 items-center gap-4 overflow-hidden">
+      <div className="flex w-full items-center gap-3 overflow-hidden sm:w-1/3 sm:gap-4">
         {displayArtwork ? (
-          <img src={displayArtwork} alt="Album Art" className="h-14 w-14 rounded object-cover shadow-sm bg-muted" />
+          <img src={displayArtwork} alt="Album Art" className="h-10 w-10 sm:h-14 sm:w-14 rounded object-cover shadow-sm bg-muted shrink-0" />
         ) : (
-          <div className="flex h-14 w-14 items-center justify-center rounded bg-muted">
+          <div className="flex h-10 w-10 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded bg-muted">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-music text-muted-foreground"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
           </div>
         )}
@@ -195,7 +207,7 @@ export function ControlBar({
       </div>
 
       {/* Playback Controls */}
-      <div className="flex w-1/3 flex-col items-center gap-2">
+      <div className="flex w-full flex-col items-center gap-2 sm:w-1/3">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" onClick={() => mutation.mutate('pl_previous')}>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-skip-back"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" x2="5" y1="19" y2="5"/></svg>
@@ -263,7 +275,7 @@ export function ControlBar({
               } else if (status.length > 0) {
                 // Seek Main Playlist
                 const seconds = Math.floor((targetPercent / 100) * status.length)
-                mutation.mutate(`seek&val=${seconds}`)
+                seekMutation.mutate(seconds)
               }
             }}
             className="w-full max-w-[400px]" 
@@ -273,33 +285,38 @@ export function ControlBar({
       </div>
 
       {/* Volume / Extra Controls */}
-      <div className="flex w-1/3 items-center justify-end gap-3">
+      <div className="flex w-full items-center justify-center gap-3 sm:w-1/3 sm:justify-end">
         {isVideoMode && (
           <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground mr-1" onClick={onToggleFullscreen} aria-label="Fullscreen">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-maximize"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
           </Button>
         )}
-        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground mr-2" onClick={onToggleInfo} aria-label="Media Info">
+        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground sm:mr-2" onClick={onToggleInfo} aria-label="Media Info">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-info"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
         </Button>
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-volume-2 text-muted-foreground"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
-        <Slider 
-          value={[isDraggingVolume ? localVolumePercent : status.volume / 2.56]} // Convert 0-256 (VLC max native volume) to 0-100%
-          max={100} 
-          step={1} 
-          className="w-24" 
-          onPointerDown={(e) => e.stopPropagation()}
-          onValueChange={(vals) => {
-             setIsDraggingVolume(true)
-             setLocalVolumePercent(vals[0])
-          }}
-          onValueCommit={(vals) => {
-             setIsDraggingVolume(false)
-             // Let's scale standard volume 0-100% to 0-256. 256 is 100%, 512 is 200%.
-             const vlcVolume = Math.round(vals[0] * 2.56)
-             volumeMutation.mutate(vlcVolume)
-          }}
-        />
+        {/* Volume control: kept visible on mobile too — it controls VLC's volume on the
+            remote computer, not the phone's own volume, so the phone's hardware buttons
+            don't apply here. */}
+        <div className="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-volume-2 text-muted-foreground"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+          <Slider 
+            value={[isDraggingVolume ? localVolumePercent : status.volume / 2.56]} // Convert 0-256 (VLC max native volume) to 0-100%
+            max={100} 
+            step={1} 
+            className="w-24" 
+            onPointerDown={(e) => e.stopPropagation()}
+            onValueChange={(vals) => {
+               setIsDraggingVolume(true)
+               setLocalVolumePercent(vals[0])
+            }}
+            onValueCommit={(vals) => {
+               setIsDraggingVolume(false)
+               // Let's scale standard volume 0-100% to 0-256. 256 is 100%, 512 is 200%.
+               const vlcVolume = Math.round(vals[0] * 2.56)
+               volumeMutation.mutate(vlcVolume)
+            }}
+          />
+        </div>
       </div>
     </div>
   )

@@ -83,9 +83,9 @@ export function Layout() {
         isVideoMode && isIdle && isFullscreen ? "cursor-none" : ""
       )}
     >
-      <header className="flex h-14 shrink-0 items-center justify-between border-b bg-card px-6 relative z-10">
-        <div className="flex items-center gap-2 font-semibold">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+      <header className="flex h-14 shrink-0 items-center justify-between border-b bg-card px-3 sm:px-6 relative z-10">
+        <div className="flex items-center gap-2 font-semibold text-sm sm:text-base">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shrink-0">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="24"
@@ -101,15 +101,23 @@ export function Layout() {
               <polygon points="6 3 20 12 6 21 6 3" />
             </svg>
           </div>
-          VLC Web Modern
+          <span>VLC Web Modern</span>
         </div>
         <ThemeToggle />
       </header>
 
+      {/* Mobile Tab Bar - horizontal, replaces the sidebar below the md breakpoint */}
+      <nav className="flex md:hidden items-center gap-1 overflow-x-auto border-b bg-muted/30 px-2 py-2 shrink-0">
+        <NavItem label="Now Playing" active={activeTab === 'now-playing'} onClick={() => setActiveTab('now-playing')} />
+        <NavItem label="Playlist" active={activeTab === 'playlist'} onClick={() => setActiveTab('playlist')} />
+        <NavItem label="Browse Media" active={activeTab === 'browse'} onClick={() => setActiveTab('browse')} />
+        <NavItem label="Settings" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
+      </nav>
+
       {/* Main Content Area */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar Navigation */}
-        <aside className="w-64 shrink-0 border-r bg-muted/30 flex flex-col justify-between">
+        <aside className="hidden md:flex w-64 shrink-0 border-r bg-muted/30 flex-col justify-between">
           {/* Navigation */}
           <nav className="flex flex-col gap-1 p-4 relative z-20">
             <NavItem label="Now Playing" active={activeTab === 'now-playing'} onClick={() => setActiveTab('now-playing')} />
@@ -149,7 +157,7 @@ export function Layout() {
                       // Fix 2: Sync playback time when returning to audio mode from video mode
                       if (status && status.length > 0) {
                         const targetSeconds = Math.floor((localVlmPercent / 100) * status.length)
-                        sendCommand(`seek&val=${targetSeconds}`).catch(() => {})
+                        sendCommand('seek', targetSeconds).catch(() => {})
                       }
                       
                       sendCommand('pl_play').catch(() => {})
@@ -186,6 +194,7 @@ export function Layout() {
                         localVlmPercent={localVlmPercent}
                         setLocalVlmPercent={setLocalVlmPercent}
                         onToggleFullscreen={toggleFullscreen}
+                        externalMeta={externalMeta}
                       />
                     </div>
                  )}
@@ -196,6 +205,7 @@ export function Layout() {
                <div className="pointer-events-auto h-full w-full">
                  {activeTab === 'now-playing' && !isVideoMode ? <NowPlaying 
                    meta={meta}
+                   externalMeta={externalMeta}
                    albumArt={displayArtwork}
                  /> : null}
                  {activeTab === 'playlist' ? <Library /> : null}
@@ -232,6 +242,7 @@ export function Layout() {
           setLocalVlmPercent={setLocalVlmPercent}
           onToggleFullscreen={toggleFullscreen}
           displayArtwork={displayArtwork}
+          externalMeta={externalMeta}
         />
       </div>
     </div>
@@ -244,7 +255,7 @@ function NavItem({ label, active = false, onClick }: { label: string; active?: b
     <button
       onClick={onClick}
       className={cn(
-        "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
+        "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors shrink-0 whitespace-nowrap",
         active
           ? "bg-secondary text-secondary-foreground"
           : "text-muted-foreground hover:bg-muted hover:text-foreground"
